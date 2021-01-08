@@ -1,6 +1,6 @@
 /*!
  * perfect-scrollbar v1.5.0
- * Copyright 2020 Hyunje Jun, MDBootstrap and Contributors
+ * Copyright 2021 Hyunje Jun, MDBootstrap and Contributors
  * Licensed under MIT
  */
 
@@ -323,8 +323,9 @@ function updateGeometry(i) {
   var roundedScrollTop = Math.floor(element.scrollTop);
   var rect = element.getBoundingClientRect();
 
-  i.containerWidth = Math.ceil(rect.width);
-  i.containerHeight = Math.ceil(rect.height);
+  i.containerWidth = Math.round(rect.width);
+  i.containerHeight = Math.round(rect.height);
+
   i.contentWidth = element.scrollWidth;
   i.contentHeight = element.scrollHeight;
 
@@ -905,28 +906,41 @@ function touch(i) {
 
   function shouldPrevent(deltaX, deltaY) {
     var scrollTop = Math.floor(element.scrollTop);
-    var scrollLeft = element.scrollLeft;
+    var scrollLeft = Math.ceil(element.scrollLeft);
     var magnitudeX = Math.abs(deltaX);
     var magnitudeY = Math.abs(deltaY);
+
+    if (!i.settings.wheelPropagation) {
+      return true;
+    }
 
     if (magnitudeY > magnitudeX) {
       // user is perhaps trying to swipe up/down the page
 
-      if (
-        (deltaY < 0 && scrollTop === i.contentHeight - i.containerHeight) ||
-        (deltaY > 0 && scrollTop === 0)
-      ) {
-        // set prevent for mobile Chrome refresh
-        return window.scrollY === 0 && deltaY > 0 && env.isChrome;
+      if (i.settings.suppressScrollY) {
+        return false;
+      }
+
+      if (deltaY > 0) {
+        return scrollTop !== 0;
+      }
+
+      if (deltaY < 0) {
+        return scrollTop < i.contentHeight - i.containerHeight;
       }
     } else if (magnitudeX > magnitudeY) {
       // user is perhaps trying to swipe left/right across the page
 
-      if (
-        (deltaX < 0 && scrollLeft === i.contentWidth - i.containerWidth) ||
-        (deltaX > 0 && scrollLeft === 0)
-      ) {
-        return true;
+      if (i.settings.suppressScrollX) {
+        return false;
+      }
+
+      if (deltaX > 0) {
+        return scrollLeft !== 0;
+      }
+
+      if (deltaY < 0) {
+        return scrollLeft < i.contentWidth - i.containerWidth;
       }
     }
 
@@ -1058,7 +1072,7 @@ function touch(i) {
         startTime = currentTime;
       }
 
-      if (shouldPrevent(differenceX, differenceY)) {
+      if (e.cancelable && shouldPrevent(differenceX, differenceY)) {
         e.preventDefault();
       }
     }
